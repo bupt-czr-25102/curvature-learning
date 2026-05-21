@@ -1,0 +1,3234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曲率的本质 - 数智融合大作业</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --accent-color: #4a90d9;
+            --primary-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-gray: #f5f5f5;
+            --border-color: #ddd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #1a252f 100%);
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 28px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .nav-items {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: width 0.3s ease;
+        }
+
+        .nav-item:hover::before {
+            width: 100%;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-left-color: rgba(74,144,217,0.5);
+            transform: translateX(5px);
+        }
+
+        .nav-item.active {
+            background: rgba(74,144,217,0.2);
+            border-left-color: var(--accent-color);
+            transform: translateX(5px);
+        }
+
+        .nav-item .icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-item .text {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .nav-item.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 20px;
+        }
+
+        .sidebar-footer p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+        }
+
+        /* 右侧主内容区 */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            min-height: 100vh;
+        }
+
+        .section {
+            padding: 50px 60px;
+            min-height: 100vh;
+            scroll-margin-top: 20px;
+        }
+
+        .section:nth-child(odd) {
+            background: var(--bg-color);
+        }
+
+        .section:nth-child(even) {
+            background: linear-gradient(180deg, #f8fafc 0%, var(--bg-color) 100%);
+        }
+
+        .section-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-color), transparent);
+            border-radius: 2px;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 35px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 35px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(74, 144, 217, 0.1);
+        }
+
+        .content-card:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+            border-color: rgba(74, 144, 217, 0.3);
+        }
+
+        /* 按钮样式 */
+        button {
+            padding: 12px 28px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(74, 144, 217, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            background-color: #357abd;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74,144,217,0.4);
+        }
+
+        button:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 2px 10px rgba(74,144,217,0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 70px;
+            }
+            .sidebar-header h1, .sidebar-header p, .nav-item .text, .sidebar-footer {
+                display: none;
+            }
+            .sidebar-header {
+                padding: 20px 15px;
+            }
+            .nav-item {
+                justify-content: center;
+                padding: 16px;
+            }
+            .main-content {
+                margin-left: 70px;
+            }
+            .section {
+                padding: 30px 25px;
+            }
+            .content-card {
+                padding: 25px;
+            }
+            .section-title {
+                font-size: 26px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                bottom: 0;
+                top: auto;
+                left: 0;
+                right: 0;
+                height: 70px;
+                width: 100%;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+            .sidebar-header, .sidebar-footer {
+                display: none;
+            }
+            .nav-items {
+                display: flex;
+                justify-content: space-around;
+                padding: 10px 0;
+            }
+            .nav-item {
+                flex-direction: column;
+                gap: 4px;
+                padding: 8px 12px;
+                border-left: none;
+                border-top: 3px solid transparent;
+                min-width: 70px;
+            }
+            .nav-item:hover {
+                border-left: none;
+                border-top-color: rgba(74,144,217,0.5);
+            }
+            .nav-item.active {
+                border-left: none;
+                border-top-color: var(--accent-color);
+            }
+            .nav-item .text {
+                display: block;
+                font-size: 11px;
+            }
+            .nav-item .icon {
+                font-size: 18px;
+            }
+            .main-content {
+                margin-left: 0;
+                margin-bottom: 70px;
+            }
+            .section {
+                padding: 25px 20px;
+            }
+            .curvature-showcase {
+                grid-template-columns: 1fr;
+            }
+            .intro-card {
+                padding: 30px 20px;
+            }
+            .intro-card h2 {
+                font-size: 22px;
+            }
+            .intro-card p {
+                font-size: 15px;
+            }
+        }
+
+        /* 平滑滚动 */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(74, 144, 217, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(74, 144, 217, 0.6);
+            }
+        }
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .animate-slideInLeft {
+            animation: slideInLeft 0.5s ease-out forwards;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .animate-glow {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        /* 章节卡片入场动画 */
+        .section .content-card {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .section .content-card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .section .content-card:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .section .content-card:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        /* 按钮点击动画 */
+        button:active {
+            transform: scale(0.96);
+        }
+
+        /* 导航激活动画 */
+        .nav-item.active {
+            animation: pulse 1s ease-out;
+        }
+
+        /* 回到顶部按钮 */
+        .back-to-top {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #357abd 100%);
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(74, 144, 217, 0.4);
+            z-index: 1000;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 6px 20px rgba(74, 144, 217, 0.6);
+        }
+
+        .back-to-top:active {
+            transform: translateY(-1px) scale(0.95);
+        }
+
+        /* 深色模式切换按钮 */
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 100px;
+            right: 90px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+            color: #f39c12;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .dark-mode-toggle:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .dark-mode-toggle.light {
+            background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
+            color: white;
+        }
+
+        /* 深色模式样式 */
+        .dark-mode {
+            --bg-color: #1a1a2e;
+            --text-color: #e0e0e0;
+            --primary-color: #4a90d9;
+            --accent-color: #667eea;
+            --light-gray: #2d2d44;
+            --border-color: #3d3d5c;
+        }
+
+        .dark-mode .sidebar {
+            background: linear-gradient(180deg, #16213e 0%, #0f1419 100%);
+        }
+
+        .dark-mode .content-card {
+            background: #2d2d44;
+            border-color: rgba(74, 144, 217, 0.2);
+        }
+
+        .dark-mode .intro-card {
+            background: linear-gradient(135deg, #4a69bd 0%, #6a5acd 100%);
+        }
+
+        .dark-mode .curvature-item {
+            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+            border-color: rgba(74, 144, 217, 0.2);
+        }
+
+        .dark-mode .formula-display,
+        .dark-mode .info-panel,
+        .dark-mode .slider-wrapper {
+            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+            border-color: rgba(74, 144, 217, 0.2);
+        }
+
+        .dark-mode .explanation-panel {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%);
+        }
+
+        /* 第一章直觉引入样式 */
+        .intro-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 24px;
+            padding: 45px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .intro-card h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .intro-card p {
+            font-size: 17px;
+            opacity: 0.95;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .curvature-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .curvature-item {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            transition: all 0.4s ease;
+            border: 2px solid rgba(74, 144, 217, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .curvature-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 144, 217, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .curvature-item:hover::before {
+            left: 100%;
+        }
+
+        .curvature-item:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.15);
+            border-color: rgba(74, 144, 217, 0.4);
+        }
+
+        .curvature-item .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .curvature-item h3 {
+            font-size: 18px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .curvature-item p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .curvature-item .curvature-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-top: 12px;
+        }
+
+        /* 核心引擎模块样式 */
+        .curve-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .curve-selector button {
+            padding: 10px 22px;
+            background: var(--light-gray);
+            color: var(--text-color);
+            border: 2px solid transparent;
+        }
+
+        .curve-selector button.active,
+        .curve-selector button:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        #coreCanvas, #coreCurvatureChart {
+            display: block;
+            margin: 0 auto;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid rgba(74, 144, 217, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        #coreCanvas:hover, #coreCurvatureChart:hover {
+            box-shadow: 0 6px 25px rgba(0,0,0,0.12);
+            border-color: rgba(74, 144, 217, 0.4);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(74, 144, 217, 0.15);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .info-panel p {
+            margin: 8px 0;
+            font-size: 15px;
+            padding: 4px 0;
+        }
+
+        .info-panel strong {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* 公式拆解模块样式 */
+        .formula-display {
+            font-size: 32px;
+            font-family: 'Times New Roman', 'SimSun', serif;
+            text-align: center;
+            padding: 35px;
+            background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(74, 144, 217, 0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+        }
+
+        .formula-display:hover {
+            border-color: rgba(74, 144, 217, 0.4);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        }
+
+        .formula-part {
+            display: inline-block;
+            transition: all 0.5s ease;
+            padding: 5px 12px;
+            border-radius: 8px;
+        }
+
+        .formula-part.highlighted {
+            background-color: rgba(74, 144, 217, 0.35);
+            color: #1e5cb3;
+            transform: scale(1.05);
+        }
+
+        .slider-wrapper {
+            background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
+            padding: 18px 28px;
+            border-radius: 40px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            border: 2px solid rgba(74, 144, 217, 0.15);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+        }
+
+        .slider-wrapper:hover {
+            border-color: rgba(74, 144, 217, 0.3);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        }
+
+        .slider-wrapper input[type="range"] {
+            width: 280px;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+        }
+
+        .slider-wrapper input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(74, 144, 217, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .slider-wrapper input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(74, 144, 217, 0.6);
+        }
+
+        .slider-wrapper input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #e0e7f0;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .slider-wrapper input[type="range"]:hover::-webkit-slider-runnable-track {
+            background: #d0dae8;
+        }
+
+        .slider-wrapper span {
+            font-family: monospace;
+            font-size: 15px;
+            color: var(--primary-color);
+            font-weight: 600;
+            background: rgba(74, 144, 217, 0.1);
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 20px;
+        }
+
+        .step-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e7f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #666;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .step-dot.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: rgba(74, 144, 217, 0.4);
+            transform: scale(1.15);
+            box-shadow: 0 4px 15px rgba(74, 144, 217, 0.4);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .step-dot.completed {
+            background-color: var(--success-color);
+            color: white;
+            border-color: rgba(39, 174, 96, 0.4);
+        }
+
+        .explanation-panel {
+            background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+            border-left: 5px solid var(--accent-color);
+            padding: 20px 24px;
+            border-radius: 0 12px 12px 0;
+            font-size: 15px;
+            line-height: 1.8;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+        }
+
+        .explanation-panel:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+
+        /* 工程实验室模块样式 */
+        .eng-main-title {
+            text-align: center;
+            margin-bottom: 35px;
+            padding-bottom: 25px;
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .eng-main-title h2 {
+            color: var(--primary-color);
+            font-size: 26px;
+            margin: 0 0 10px 0;
+        }
+
+        .eng-subtitle {
+            color: #666;
+            font-size: 15px;
+        }
+
+        .eng-section {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 28px;
+        }
+
+        .eng-section h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            font-size: 19px;
+            margin-bottom: 20px;
+        }
+
+        .eng-controls-card {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .eng-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            align-items: flex-end;
+        }
+
+        .eng-control-group {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .eng-control-group label {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 14px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #dce3e8;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .eng-value-display {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .eng-toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            min-width: 280px;
+        }
+
+        .eng-toggle-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+
+        .eng-toggle-switch {
+            position: relative;
+            width: 56px;
+            height: 30px;
+            flex-shrink: 0;
+        }
+
+        .eng-toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .eng-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 30px;
+        }
+
+        .eng-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .eng-toggle-slider {
+            background-color: var(--success-color);
+        }
+
+        input:checked + .eng-toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .eng-toggle-status {
+            font-weight: 600;
+            font-size: 13px;
+            min-width: 60px;
+        }
+
+        .eng-toggle-status.on { color: var(--success-color); }
+        .eng-toggle-status.off { color: var(--danger-color); }
+
+        .eng-canvas-wrapper {
+            background: #fdfdfd;
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid #e8ecf1;
+            text-align: center;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .eng-legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .eng-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .eng-legend-line {
+            width: 35px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .eng-legend-dash {
+            width: 35px;
+            height: 0;
+            border-top: 3px dashed;
+        }
+
+        .eng-explanation {
+            background: #f0f7ff;
+            border-left: 4px solid var(--accent-color);
+            padding: 16px 20px;
+            margin-top: 20px;
+            border-radius: 0 12px 12px 0;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .eng-compare-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .eng-compare-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .eng-compare-box {
+            border-radius: 14px;
+            padding: 24px;
+            border-left: 6px solid;
+        }
+
+        .eng-compare-box.good {
+            border-left-color: var(--success-color);
+            background: #f0faf4;
+        }
+
+        .eng-compare-box.bad {
+            border-left-color: var(--danger-color);
+            background: #fef5f5;
+        }
+
+        .eng-box-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .eng-compare-box.good .eng-box-title { color: var(--success-color); }
+        .eng-compare-box.bad .eng-box-title { color: var(--danger-color); }
+
+        .eng-box-desc {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #555;
+        }
+
+        .eng-box-desc p {
+            margin: 8px 0;
+        }
+
+        .eng-highlight {
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .good-hl {
+            background-color: #c8e6c9;
+            color: var(--success-color);
+        }
+
+        .bad-hl {
+            background-color: #ffcdd2;
+            color: var(--danger-color);
+        }
+
+        .eng-impact-demo {
+            display: flex;
+            align-items: center;
+            gap: 35px;
+            flex-wrap: wrap;
+        }
+
+        .eng-impact-canvas-wrap {
+            flex-shrink: 0;
+            background: #fafbfc;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #e8ecf1;
+        }
+
+        .eng-impact-info {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .eng-impact-info h4 {
+            color: var(--danger-color);
+            margin: 0 0 12px 0;
+        }
+
+        .eng-impact-info p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #555;
+            margin: 8px 0;
+        }
+
+        .eng-impact-badge {
+            display: inline-block;
+            background: var(--danger-color);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 12px;
+            animation: eng-pulse 2s infinite;
+        }
+
+        @keyframes eng-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(231,76,60,0); }
+        }
+
+        /* 知识挑战模块样式 */
+        .quiz-section {
+            background: var(--light-gray);
+            padding: 28px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .quiz-section h3 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            font-size: 19px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .question {
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            background: white;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            border: 2px solid transparent;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .option:hover {
+            border-color: var(--accent-color);
+            background: rgba(74,144,217,0.05);
+        }
+
+        .option.correct {
+            border-color: var(--success-color);
+            background: rgba(39,174,96,0.08);
+        }
+
+        .option.incorrect {
+            border-color: var(--danger-color);
+            background: rgba(231,76,60,0.08);
+        }
+
+        .option input[type="radio"] {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--accent-color);
+        }
+
+        .question-item {
+            margin-bottom: 24px;
+        }
+
+        .score-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+
+        .score-display {
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .score-display span {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .badge-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .badge {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            opacity: 0.5;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .badge:hover {
+            transform: scale(1.1);
+        }
+
+        .drag-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .drag-panel {
+            background: var(--light-gray);
+            border-radius: 14px;
+            padding: 20px;
+            min-height: 200px;
+        }
+
+        .drag-item {
+            background: white;
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.25s;
+        }
+
+        .drag-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .drag-item:active {
+            cursor: grabbing;
+        }
+
+        .drop-zone {
+            background: white;
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 2px dashed #ddd;
+            transition: all 0.25s;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent-color);
+            background: rgba(74,144,217,0.05);
+        }
+
+        .drop-zone.matched {
+            border-color: var(--success-color);
+            background: rgba(39,174,96,0.1);
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .judge-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .judge-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.25s;
+        }
+
+        .judge-btn.true {
+            background: rgba(39,174,96,0.1);
+            color: var(--success-color);
+            border: 2px solid transparent;
+        }
+
+        .judge-btn.false {
+            background: rgba(231,76,60,0.1);
+            color: var(--danger-color);
+            border: 2px solid transparent;
+        }
+
+        .judge-btn.correct {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .judge-btn.incorrect {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .fill-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            margin-top: 12px;
+            margin-right: 12px;
+            transition: all 0.25s;
+        }
+
+        .fill-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .fill-input.correct {
+            border-color: var(--success-color);
+            background: rgba(39,174,96,0.08);
+        }
+
+        .fill-input.incorrect {
+            border-color: var(--danger-color);
+            background: rgba(231,76,60,0.08);
+        }
+
+        .submit-fill {
+            padding: 12px 28px;
+            margin-top: 12px;
+        }
+
+        .result-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .result-panel h3 {
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+
+        .result-panel .score {
+            font-size: 56px;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .result-panel p {
+            font-size: 18px;
+            margin-top: 12px;
+        }
+
+        .drag-drop-container {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .drag-source, .drop-target {
+            flex: 1;
+            min-height: 160px;
+            padding: 20px;
+            border: 2px dashed var(--border-color);
+            border-radius: 18px;
+            background: white;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .drag-source.hovering, .drop-target.hovering {
+            border-color: var(--accent-color);
+            background: rgba(74,144,217,0.04);
+        }
+
+        .drag-item {
+            padding: 14px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: grab;
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .drag-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .hotspot-container {
+            position: relative;
+            background: var(--light-gray);
+            height: 240px;
+            border-radius: 16px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .hotspot {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(74,144,217,0.25);
+            border: 3px dashed var(--accent-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-color);
+            z-index: 10;
+            transform: translate(-50%, -50%);
+        }
+
+        .hotspot:hover {
+            background: rgba(74,144,217,0.5);
+            transform: translate(-50%, -50%) scale(1.12);
+        }
+
+        .hotspot.correct {
+            background: rgba(39,174,96,0.6);
+            border-color: var(--success-color);
+            color: white;
+        }
+
+        .fill-input {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            font-size: 15px;
+            width: 200px;
+            transition: border 0.2s;
+            margin-right: 14px;
+        }
+
+        .fill-input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        .result-panel {
+            background: linear-gradient(105deg, #f0f4ff, var(--light-gray));
+            padding: 32px;
+            border-radius: 20px;
+            margin-top: 28px;
+            text-align: center;
+            border: 1px solid rgba(39,174,96,0.3);
+        }
+
+        .result-panel h3 {
+            margin-bottom: 14px;
+            color: var(--primary-color);
+            font-size: 26px;
+        }
+
+        .result-panel .score {
+            font-size: 52px;
+            font-weight: 800;
+            color: var(--success-color);
+            margin: 10px 0;
+        }
+
+        .score-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(105deg, #f0f4ff 0%, var(--light-gray) 100%);
+            padding: 24px 32px;
+            border-radius: 20px;
+            margin-bottom: 36px;
+            border: 1px solid rgba(74,144,217,0.15);
+        }
+
+        .score-display {
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-display span {
+            font-size: 42px;
+            color: var(--accent-color);
+            font-weight: 800;
+        }
+
+        .badge-container {
+            display: flex;
+            gap: 18px;
+        }
+
+        .badge {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ccc, #aaa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            opacity: 0.25;
+            transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .badge.unlocked {
+            opacity: 1;
+            background: linear-gradient(135deg, var(--warning-color), var(--danger-color));
+            animation: badgePop 0.6s ease-out;
+            box-shadow: 0 8px 18px rgba(243,156,18,0.4);
+        }
+
+        @keyframes badgePop {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        .achievement-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeInOverlay 0.3s ease-out;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .achievement-popup {
+            background: white;
+            border-radius: 32px;
+            padding: 45px 55px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .achievement-icon {
+            font-size: 75px;
+            display: block;
+            margin-bottom: 22px;
+            animation: floatEmoji 1.5s ease-in-out infinite;
+        }
+
+        @keyframes floatEmoji {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .achievement-title {
+            font-size: 34px;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .achievement-close {
+            margin-top: 28px;
+            padding: 12px 35px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 18px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .achievement-close:hover {
+            background: var(--primary-color);
+        }
+
+        .sub-quiz {
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .sub-quiz:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>📐 曲率的本质</h1>
+                <p>探索弯曲的奥秘</p>
+            </div>
+            
+            <div class="nav-items">
+                <div class="nav-item active" onclick="scrollToSection('section1')">
+                    <span class="icon">🎯</span>
+                    <span class="text">直觉引入</span>
+                </div>
+                <div class="nav-item" onclick="scrollToSection('section2')">
+                    <span class="icon">🔍</span>
+                    <span class="text">密切圆探针</span>
+                </div>
+                <div class="nav-item" onclick="scrollToSection('section3')">
+                    <span class="icon">📝</span>
+                    <span class="text">公式拆解</span>
+                </div>
+                <div class="nav-item" onclick="scrollToSection('section4')">
+                    <span class="icon">🛣️</span>
+                    <span class="text">工程实验室</span>
+                </div>
+                <div class="nav-item" onclick="scrollToSection('section5')">
+                    <span class="icon">🏆</span>
+                    <span class="text">知识挑战</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>数智融合大作业</p>
+            </div>
+        </nav>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-content">
+            <!-- 第一章：直觉引入 -->
+            <section id="section1" class="section">
+                <h2 class="section-title">🎯 直觉引入</h2>
+                <p class="section-subtitle">什么是曲率？它如何描述曲线的弯曲程度？</p>
+                
+                <div class="intro-card">
+                    <h2>弯曲无处不在</h2>
+                    <p>从行星轨道到过山车，从显微镜下的DNA螺旋到宏伟的桥梁建筑，曲线和弯曲无处不在。如何精确地量化"弯曲"的程度？这就是曲率要回答的问题。</p>
+                </div>
+
+                <div class="curvature-showcase">
+                    <div class="curvature-item">
+                        <div class="icon">📏</div>
+                        <h3>直线</h3>
+                        <p>没有弯曲，曲率为零</p>
+                        <div class="curvature-value">κ = 0</div>
+                    </div>
+                    <div class="curvature-item">
+                        <div class="icon">⭕</div>
+                        <h3>圆</h3>
+                        <p>均匀弯曲，曲率恒定</p>
+                        <div class="curvature-value">κ = 1/R</div>
+                    </div>
+                    <div class="curvature-item">
+                        <div class="icon">📈</div>
+                        <h3>抛物线</h3>
+                        <p>弯曲程度变化</p>
+                        <div class="curvature-value">κ = 2/(1+4x²)^(3/2)</div>
+                    </div>
+                    <div class="curvature-item">
+                        <div class="icon">🎢</div>
+                        <h3>回旋线</h3>
+                        <p>曲率线性变化</p>
+                        <div class="curvature-value">κ ∝ s</div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <h3>💡 核心概念</h3>
+                    <p style="margin-bottom: 16px;">曲率（curvature）是描述曲线弯曲程度的量。对于平面曲线，曲率越大表示曲线弯曲得越厉害。</p>
+                    <div style="background: var(--light-gray); padding: 20px; border-radius: 12px;">
+                        <p><strong>密切圆（Osculating Circle）：</strong>在曲线上某一点，与曲线最贴近的圆。它的半径称为曲率半径，半径的倒数就是曲率。</p>
+                        <p style="margin-top: 12px;">κ = 1/R，其中 κ 是曲率，R 是密切圆半径。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第二章：密切圆探针 -->
+            <section id="section2" class="section">
+                <h2 class="section-title">🔍 密切圆探针</h2>
+                <p class="section-subtitle">拖动鼠标，观察密切圆的动态变化，感受曲率的直观含义</p>
+                
+                <div class="content-card">
+                    <h2>曲率探针 - 密切圆演示</h2>
+                    
+                    <div class="curve-selector" id="curveSelector">
+                        <button id="curveBtn1" class="active">y = x²</button>
+                        <button id="curveBtn2">y = eˣ</button>
+                        <button id="curveBtn3">y = sin(x)</button>
+                    </div>
+                    
+                    <canvas id="coreCanvas" width="800" height="400"></canvas>
+                    
+                    <h2 style="margin-top: 30px;">曲率-弧长变化图</h2>
+                    <canvas id="coreCurvatureChart" width="800" height="200"></canvas>
+                    
+                    <div class="info-panel">
+                        <p><strong>当前曲线：</strong><span id="currentCurve">y = x²</span></p>
+                        <p><strong>当前点 (x, y)：</strong><span id="currentPoint">(0, 0)</span></p>
+                        <p><strong>曲率 k：</strong><span id="curvatureValue">0.00</span></p>
+                        <p><strong>提示：</strong>在曲线上拖动鼠标，观察密切圆的变化</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第三章：公式拆解 -->
+            <section id="section3" class="section">
+                <h2 class="section-title">📝 公式拆解</h2>
+                <p class="section-subtitle">深入理解曲率公式的构成，掌握每一部分的物理意义</p>
+                
+                <div class="content-card">
+                    <!-- 公式显示区（细粒度高亮 span） -->
+                    <div class="formula-display">
+                        <span class="formula-part" id="formulaK">k</span>
+                        <span class="formula-part"> = </span>
+                        <span class="formula-part">|</span>
+                        <span class="formula-part" id="secondDerivSpan">y''</span>
+                        <span class="formula-part">|</span>
+                        <span class="formula-part"> / </span>
+                        <span class="formula-part">(1 + </span>
+                        <span class="formula-part" id="firstDerivSpan">y'</span>
+                        <span class="formula-part">²)</span>
+                        <span class="formula-part"><sup>3/2</sup></span>
+                    </div>
+
+                    <!-- canvas 画布 -->
+                    <canvas id="formulaHintCanvas" width="600" height="300"></canvas>
+
+                    <!-- 滑块：控制探针位置（随点而变曲率圆） -->
+                    <div class="slider-wrapper">
+                        <label>📍 探针位置 x = </label>
+                        <input type="range" id="xSlider" min="-3.5" max="3.5" step="0.02" value="1.2">
+                        <span id="xValueDisplay" style="font-family:monospace;">x = 1.20</span>
+                        <span id="curvatureDisplay" style="font-family:monospace; margin-left:10px;">📐 k = --</span>
+                    </div>
+
+                    <!-- 控制按钮组 -->
+                    <div class="control-panel">
+                        <button id="resetBtn">重置</button>
+                        <button id="prevBtn">上一步</button>
+                        <button id="nextBtn">下一步</button>
+                    </div>
+
+                    <!-- 步骤指示器 -->
+                    <div class="step-indicator">
+                        <div class="step-dot active" id="step1"></div>
+                        <div class="step-dot" id="step2"></div>
+                        <div class="step-dot" id="step3"></div>
+                    </div>
+
+                    <!-- 解释面板 -->
+                    <div class="explanation-panel" id="explanation">
+                        使用「上一步」「下一步」按钮学习曲率公式拆解：一阶导数 → 二阶导数 → 曲率公式
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第四章：工程实验室 -->
+            <section id="section4" class="section">
+                <h2 class="section-title">🛣️ 回旋线工程实验室</h2>
+                <p class="section-subtitle">探索回旋线在道路设计中的应用，理解曲率连续变化的重要性</p>
+                
+                <div id="eng-module-container">
+                    
+                    <div class="eng-main-title">
+                        <h2>🛣️ 回旋线道路平滑连接实验</h2>
+                        <p class="eng-subtitle">直线道路 → 回旋线过渡 → 圆弧曲线 | 对比使用与不使用回旋线的差异</p>
+                    </div>
+                    
+                    <!-- 控制面板 -->
+                    <div class="eng-section">
+                        <h3>🎛️ 参数控制</h3>
+                        <div class="eng-controls-card">
+                            <div class="eng-controls">
+                                <div class="eng-control-group">
+                                    <label>曲线半径 R：<span class="eng-value-display" id="engRadiusVal">200</span> m</label>
+                                    <input type="range" id="engRadius" min="100" max="400" value="200" step="10">
+                                </div>
+                                <div class="eng-control-group">
+                                    <label>回旋线长度 L：<span class="eng-value-display" id="engTransLengthVal">150</span> m</label>
+                                    <input type="range" id="engTransLength" min="50" max="300" value="150" step="5">
+                                </div>
+                                <div class="eng-toggle-group">
+                                    <span class="eng-toggle-label">使用回旋线：</span>
+                                    <label class="eng-toggle-switch">
+                                        <input type="checkbox" id="engUseClothoid" checked>
+                                        <span class="eng-toggle-slider"></span>
+                                    </label>
+                                    <span class="eng-toggle-status on" id="engToggleStatus">已启用</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 道路平面图 -->
+                    <div class="eng-section">
+                        <h3>🗺️ 道路平面图（俯视图）</h3>
+                        <div class="eng-canvas-wrapper">
+                            <canvas id="engCanvas" width="950" height="500"></canvas>
+                        </div>
+                        
+                        <div class="eng-legend">
+                            <div class="eng-legend-item">
+                                <div class="eng-legend-line" style="background:#666;"></div>
+                                <span>直线道路段</span>
+                            </div>
+                            <div class="eng-legend-item">
+                                <div class="eng-legend-line" style="background:var(--accent-color);"></div>
+                                <span>回旋线过渡段</span>
+                            </div>
+                            <div class="eng-legend-item">
+                                <div class="eng-legend-line" style="background:var(--success-color);"></div>
+                                <span>圆弧曲线段</span>
+                            </div>
+                            <div class="eng-legend-item">
+                                <div class="eng-legend-dash" style="border-color:var(--danger-color);"></div>
+                                <span>不使用回旋线（曲率突变）</span>
+                            </div>
+                        </div>
+                        
+                        <div class="eng-explanation">
+                            <strong>💡 观察：</strong>绿色实线 = 使用回旋线的平滑道路；红色虚线 = 不使用回旋线。切换<strong>"使用回旋线"</strong>开关对比两种设计——注意连接点处的曲率变化和冲击力箭头。
+                        </div>
+                    </div>
+
+                    <!-- 曲率对比图 -->
+                    <div class="eng-section">
+                        <h3>📈 曲率变化对比图</h3>
+                        <div class="eng-canvas-wrapper">
+                            <canvas id="engCurvatureGraph" width="950" height="280"></canvas>
+                        </div>
+                        <div class="eng-legend">
+                            <div class="eng-legend-item">
+                                <div class="eng-legend-line" style="background:var(--success-color);"></div>
+                                <span>使用回旋线 — 曲率连续变化</span>
+                            </div>
+                            <div class="eng-legend-item">
+                                <div class="eng-legend-dash" style="border-color:var(--danger-color);"></div>
+                                <span>不使用回旋线 — 曲率跳变</span>
+                            </div>
+                        </div>
+                        
+                        <div class="eng-explanation">
+                            <strong>🔍 曲率解读：</strong>曲率 κ=0 表示直线，κ=1/R 表示圆弧。使用回旋线时曲率<strong>从0线性增长</strong>到1/R，平滑过渡；不使用回旋线时曲率<strong>瞬间跳变</strong>——这是冲击力的来源。
+                        </div>
+                    </div>
+
+                    <!-- 对比说明框 -->
+                    <div class="eng-section">
+                        <h3>⚖️ 使用回旋线 vs 不使用回旋线</h3>
+                        <div class="eng-compare-row">
+                            <div class="eng-compare-box good">
+                                <div class="eng-box-title">✅ 使用回旋线过渡</div>
+                                <div class="eng-box-desc">
+                                    <p>曲率<span class="eng-highlight good-hl">从0线性增长</span>到1/R，过渡平滑连续。</p>
+                                    <p>方向盘<span class="eng-highlight good-hl">匀速转动</span>，离心力逐渐增大。</p>
+                                    <p>👉 <span class="eng-highlight good-hl">安全舒适</span>的设计标准。</p>
+                                </div>
+                            </div>
+                            <div class="eng-compare-box bad">
+                                <div class="eng-box-title">❌ 不使用回旋线过渡</div>
+                                <div class="eng-box-desc">
+                                    <p>曲率<span class="eng-highlight bad-hl">从0瞬间跳变</span>到1/R，连接点突变。</p>
+                                    <p>方向盘需<span class="eng-highlight bad-hl">突然猛打</span>，乘客被甩向一侧。</p>
+                                    <p>👉 <span class="eng-highlight bad-hl">不适甚至危险</span>。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 冲击力示意模块 -->
+                    <div class="eng-section">
+                        <h3>💥 冲击力示意 — 平滑过渡的重要性</h3>
+                        <div class="eng-impact-demo">
+                            <div class="eng-impact-canvas-wrap">
+                                <canvas id="engImpactCanvas" width="320" height="280"></canvas>
+                            </div>
+                            <div class="eng-impact-info">
+                                <h4>⚠️ 曲率突变 = 冲击力产生</h4>
+                                <p>车辆从直线<strong>突然进入弯道</strong>（无回旋线）时，连接点处产生<strong style="color:var(--danger-color);">瞬时侧向冲击力</strong>。</p>
+                                <p>乘客会被<strong style="color:var(--danger-color);">猛地推向一侧</strong>，严重时可能导致车辆失控。</p>
+                                <p>回旋线的作用是<strong style="color:var(--success-color);">消除这个冲击</strong>，让离心力从零逐渐增大。</p>
+                                <span class="eng-impact-badge">⚡ 冲击力危险</span>
+                            </div>
+                        </div>
+                        
+                        <div class="eng-explanation">
+                            <strong>🛡️ 工程意义：</strong>在高速公路、铁路、过山车轨道设计中，回旋线是强制性安全标准，确保曲率连续变化，消除连接点冲击力，保障行驶安全与舒适。
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 第五章：知识挑战 -->
+            <section id="section5" class="section">
+                <h2 class="section-title">🏆 知识挑战</h2>
+                <p class="section-subtitle">检验你的学习成果，完成各种挑战题目</p>
+                
+                <div class="content-card">
+                    <div class="score-panel">
+                        <div class="score-display">你的得分 <span id="score">0</span> / 100</div>
+                        <div class="badge-container">
+                            <div class="badge" id="badge1" title="初学者">🌱</div>
+                            <div class="badge" id="badge2" title="探索者">🔍</div>
+                            <div class="badge" id="badge3" title="大师">🏆</div>
+                        </div>
+                    </div>
+
+                    <div class="quiz-section" id="quizChoiceSection"></div>
+                    <div class="quiz-section" id="quizDragSection"></div>
+                    <div class="quiz-section" id="quizHotspotSection"></div>
+                    <div class="quiz-section" id="quizJudgeSection"></div>
+                    <div class="quiz-section" id="quizFillSection"></div>
+
+                    <button id="showResult" style="margin-top: 8px; width: 100%;">📊 查看最终成绩</button>
+
+                    <div class="result-panel" id="resultPanel" style="display: none;">
+                        <h3>🎉 挑战完成！</h3>
+                        <div class="score" id="finalScore">0</div>
+                        <p id="evaluation" style="font-size:18px; margin-top:8px;"></p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 深色模式切换按钮 -->
+    <button id="darkModeToggle" class="dark-mode-toggle" title="切换深色模式">
+        🌙
+    </button>
+
+    <!-- 回到顶部按钮 -->
+    <button id="backToTop" class="back-to-top" title="回到顶部">
+        ↑
+    </button>
+
+    <!-- 导航滚动脚本 -->
+    <script>
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            document.querySelector(`[onclick="scrollToSection('${sectionId}')"]`).classList.add('active');
+        }
+
+        // 监听滚动，自动更新导航高亮
+        window.addEventListener('scroll', () => {
+            const sections = ['section1', 'section2', 'section3', 'section4', 'section5'];
+            const scrollPosition = window.scrollY + 200;
+            
+            for (const sectionId of sections) {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const offsetTop = section.offsetTop;
+                    const offsetHeight = section.offsetHeight;
+                    
+                    if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+                        document.querySelectorAll('.nav-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        document.querySelector(`[onclick="scrollToSection('${sectionId}')"]`).classList.add('active');
+                        break;
+                    }
+                }
+            }
+        });
+    </script>
+
+    <!-- 核心引擎模块JS -->
+    <script>
+        function core_init() {
+            core_setupCanvas();
+            core_bindEvents();
+            core_draw();
+        }
+        
+        let core_canvas, core_ctx;
+        let core_chartCanvas, core_chartCtx;
+        let core_currentCurve = 0;
+        let core_mousePos = null;
+        let core_isDragging = false;
+        
+        const core_curves = [
+            { name: 'y = x²', func: x => x * x, color: '#4a90d9' },
+            { name: 'y = eˣ', func: x => Math.exp(x), color: '#27ae60' },
+            { name: 'y = sin(x)', func: x => Math.sin(x), color: '#f39c12' }
+        ];
+        
+        function core_setupCanvas() {
+            core_canvas = document.getElementById('coreCanvas');
+            core_ctx = core_canvas.getContext('2d');
+            core_chartCanvas = document.getElementById('coreCurvatureChart');
+            core_chartCtx = core_chartCanvas.getContext('2d');
+        }
+        
+        function core_bindEvents() {
+            document.getElementById('curveBtn1').addEventListener('click', () => core_switchCurve(0));
+            document.getElementById('curveBtn2').addEventListener('click', () => core_switchCurve(1));
+            document.getElementById('curveBtn3').addEventListener('click', () => core_switchCurve(2));
+            
+            core_canvas.addEventListener('mousedown', core_onMouseDown);
+            core_canvas.addEventListener('mousemove', core_onMouseMove);
+            core_canvas.addEventListener('mouseup', core_onMouseUp);
+            core_canvas.addEventListener('mouseleave', core_onMouseUp);
+        }
+        
+        function core_switchCurve(index) {
+            core_currentCurve = index;
+            document.querySelectorAll('.curve-selector button').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+            document.getElementById('currentCurve').textContent = core_curves[index].name;
+            core_mousePos = null;
+            core_draw();
+        }
+        
+        function core_onMouseDown(e) {
+            core_isDragging = true;
+            core_updateMousePos(e);
+        }
+        
+        function core_onMouseMove(e) {
+            if (core_isDragging) {
+                core_updateMousePos(e);
+            }
+        }
+        
+        function core_onMouseUp() {
+            core_isDragging = false;
+        }
+        
+        function core_updateMousePos(e) {
+            const rect = core_canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const curve = core_curves[core_currentCurve];
+            const canvasX = (x / core_canvas.width) * 8 - 4;
+            const canvasY = 4 - (y / core_canvas.height) * 4;
+            
+            const closestT = core_findClosestPoint(canvasX, canvasY, curve);
+            core_mousePos = { t: closestT, x: closestT, y: curve.func(closestT) };
+            
+            core_draw();
+        }
+        
+        function core_findClosestPoint(targetX, targetY, curve) {
+            let closestT = targetX;
+            let minDist = Infinity;
+            
+            for (let t = -4; t <= 4; t += 0.01) {
+                const y = curve.func(t);
+                const dist = Math.sqrt((t - targetX) ** 2 + (y - targetY) ** 2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestT = t;
+                }
+            }
+            
+            return closestT;
+        }
+        
+        function core_draw() {
+            core_drawCurve();
+            core_drawCurvatureChart();
+            
+            if (core_mousePos) {
+                core_drawOsculatingCircle();
+                core_updateInfo();
+            }
+        }
+        
+        function core_drawCurve() {
+            const ctx = core_ctx;
+            ctx.clearRect(0, 0, core_canvas.width, core_canvas.height);
+            
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            
+            for (let i = -4; i <= 4; i++) {
+                const x = core_toCanvasX(i);
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, core_canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let i = -2; i <= 2; i++) {
+                const y = core_toCanvasY(i);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(core_canvas.width, y);
+                ctx.stroke();
+            }
+            
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(core_toCanvasX(0), 0);
+            ctx.lineTo(core_toCanvasX(0), core_canvas.height);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, core_toCanvasY(0));
+            ctx.lineTo(core_canvas.width, core_toCanvasY(0));
+            ctx.stroke();
+            
+            const curve = core_curves[core_currentCurve];
+            ctx.strokeStyle = curve.color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for (let t = -4; t <= 4; t += 0.01) {
+                const x = core_toCanvasX(t);
+                const y = core_toCanvasY(curve.func(t));
+                if (t === -4) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        function core_toCanvasX(x) {
+            return ((x + 4) / 8) * core_canvas.width;
+        }
+        
+        function core_toCanvasY(y) {
+            return core_canvas.height - ((y + 2) / 4) * core_canvas.height;
+        }
+        
+        function core_drawOsculatingCircle() {
+            const ctx = core_ctx;
+            const curve = core_curves[core_currentCurve];
+            const { t, x, y } = core_mousePos;
+            
+            const dy = core_numericalDerivative(curve.func, t);
+            const ddy = core_numericalSecondDerivative(curve.func, t);
+            
+            const curvature = Math.abs(ddy) / Math.pow(1 + dy * dy, 1.5);
+            const radius = curvature > 0.001 ? 1 / curvature : 1000;
+            
+            const normalAngle = Math.atan(dy) + Math.PI / 2;
+            const centerX = x + radius * Math.cos(normalAngle);
+            const centerY = y + radius * Math.sin(normalAngle);
+            
+            ctx.fillStyle = 'rgba(74, 144, 217, 0.3)';
+            ctx.beginPath();
+            ctx.arc(core_toCanvasX(centerX), core_toCanvasY(centerY), 
+                    radius * (core_canvas.width / 8), 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#4a90d9';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(core_toCanvasX(x), core_toCanvasY(y), 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#9b59b6';
+            ctx.beginPath();
+            ctx.arc(core_toCanvasX(centerX), core_toCanvasY(centerY), 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#9b59b6';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(core_toCanvasX(x), core_toCanvasY(y));
+            ctx.lineTo(core_toCanvasX(centerX), core_toCanvasY(centerY));
+            ctx.stroke();
+        }
+        
+        function core_numericalDerivative(func, x) {
+            const h = 0.0001;
+            return (func(x + h) - func(x - h)) / (2 * h);
+        }
+        
+        function core_numericalSecondDerivative(func, x) {
+            const h = 0.0001;
+            return (func(x + h) - 2 * func(x) + func(x - h)) / (h * h);
+        }
+        
+        function core_drawCurvatureChart() {
+            const ctx = core_chartCtx;
+            ctx.clearRect(0, 0, core_chartCanvas.width, core_chartCanvas.height);
+            
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = (i / 5) * core_chartCanvas.height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(core_chartCanvas.width, y);
+                ctx.stroke();
+            }
+            
+            const curve = core_curves[core_currentCurve];
+            ctx.strokeStyle = curve.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            let maxCurvature = 0;
+            for (let t = -4; t <= 4; t += 0.01) {
+                const dy = core_numericalDerivative(curve.func, t);
+                const ddy = core_numericalSecondDerivative(curve.func, t);
+                const curvature = Math.abs(ddy) / Math.pow(1 + dy * dy, 1.5);
+                maxCurvature = Math.max(maxCurvature, curvature);
+            }
+            
+            maxCurvature = Math.max(maxCurvature, 0.1);
+            
+            for (let t = -4; t <= 4; t += 0.01) {
+                const dy = core_numericalDerivative(curve.func, t);
+                const ddy = core_numericalSecondDerivative(curve.func, t);
+                const curvature = Math.abs(ddy) / Math.pow(1 + dy * dy, 1.5);
+                
+                const x = ((t + 4) / 8) * core_chartCanvas.width;
+                const y = core_chartCanvas.height - (curvature / maxCurvature) * core_chartCanvas.height;
+                
+                if (t === -4) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            if (core_mousePos) {
+                const t = core_mousePos.t;
+                const dy = core_numericalDerivative(curve.func, t);
+                const ddy = core_numericalSecondDerivative(curve.func, t);
+                const curvature = Math.abs(ddy) / Math.pow(1 + dy * dy, 1.5);
+                
+                const x = ((t + 4) / 8) * core_chartCanvas.width;
+                const y = core_chartCanvas.height - (curvature / maxCurvature) * core_chartCanvas.height;
+                
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function core_updateInfo() {
+            const curve = core_curves[core_currentCurve];
+            const { t, x, y } = core_mousePos;
+            
+            const dy = core_numericalDerivative(curve.func, t);
+            const ddy = core_numericalSecondDerivative(curve.func, t);
+            const curvature = Math.abs(ddy) / Math.pow(1 + dy * dy, 1.5);
+            
+            document.getElementById('currentPoint').textContent = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
+            document.getElementById('curvatureValue').textContent = curvature.toFixed(4);
+        }
+        
+        window.addEventListener('load', core_init);
+    </script>
+
+    <!-- 公式拆解模块JS -->
+    <script>
+    (function(){
+        const f = (x) => 0.25 * x * x + 0.05 * x * x * x;
+        const f1 = (x) => 0.5 * x + 0.15 * x * x;
+        const f2 = (x) => 0.5 + 0.3 * x;
+
+        const curvature = (x) => {
+            let yp = f1(x);
+            let ypp = f2(x);
+            return Math.abs(ypp) / Math.pow(1 + yp * yp, 1.5);
+        };
+        const radius = (x) => {
+            let k = curvature(x);
+            return k > 1e-6 ? 1 / k : 1000;
+        };
+        const circleCenter = (x, y, yp, R) => {
+            let ypp = f2(x);
+            let cx = x - yp * (1 + yp * yp) / ypp;
+            let cy = y + (1 + yp * yp) / ypp;
+            return { cx, cy };
+        };
+
+        const canvas = document.getElementById('formulaHintCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = 600, height = 300;
+        canvas.width = width; canvas.height = height;
+        const xMin = -3.8, xMax = 3.8, yMin = -1.2, yMax = 3.6;
+        const mapX = (x) => ((x - xMin) / (xMax - xMin)) * width;
+        const mapY = (y) => height - ((y - yMin) / (yMax - yMin)) * height;
+
+        let currentStep = 0;
+        let currentX = 1.2;
+
+        const firstSpan = document.getElementById('firstDerivSpan');
+        const secondSpan = document.getElementById('secondDerivSpan');
+        const formulaKSpan = document.getElementById('formulaK');
+        const stepDots = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+        const explainDiv = document.getElementById('explanation');
+        const xSlider = document.getElementById('xSlider');
+        const xValueSpan = document.getElementById('xValueDisplay');
+        const curvSpan = document.getElementById('curvatureDisplay');
+
+        const clearHighlights = () => {
+            if(firstSpan) firstSpan.classList.remove('highlighted');
+            if(secondSpan) secondSpan.classList.remove('highlighted');
+            if(formulaKSpan) formulaKSpan.classList.remove('highlighted');
+        };
+        const highlightStepFormula = (step) => {
+            clearHighlights();
+            if(step === 0) firstSpan?.classList.add('highlighted');
+            else if(step === 1) secondSpan?.classList.add('highlighted');
+            else if(step === 2) formulaKSpan?.classList.add('highlighted');
+        };
+
+        const updateStepUI = () => {
+            stepDots.forEach((dot, idx) => {
+                if(idx === currentStep) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+            let msg = '';
+            if(currentStep === 0) msg = '🔹 第一步：<strong>一阶导数 y′</strong> —— 切线的斜率。图中绘制了当前点的<strong style="color:#e67e22;">切线</strong>（橙色虚线）。';
+            else if(currentStep === 1) msg = '🔸 第二步：<strong>二阶导数 y″</strong> —— 决定凹凸性。图中显示 <span style="color:#27ae60;">∪ 凹函数</span> 或 <span style="color:#f39c12;">∩ 凸函数</span>，并给出 f″(x) 数值。';
+            else msg = '🔹 第三步：<strong>曲率公式 k = |y″|/(1+y′²)^(3/2)</strong> —— 定量弯曲程度。图中绘制<strong style="color:#e74c3c;">密切圆（曲率圆）</strong>，半径越小弯曲越剧烈。';
+            explainDiv.innerHTML = `${msg}<br>📍 当前 x = ${currentX.toFixed(3)}，曲率 k = ${curvature(currentX).toFixed(5)} | 拖动滑块观察几何变化。`;
+        };
+
+        const drawCanvas = () => {
+            ctx.clearRect(0, 0, width, height);
+            ctx.save();
+
+            ctx.strokeStyle = "#ccc";
+            ctx.lineWidth = 0.5;
+            for(let x = -3; x <= 3; x+=1) {
+                let sx = mapX(x);
+                ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,height); ctx.stroke();
+            }
+            for(let y = -1; y <= 3; y+=1) {
+                let sy = mapY(y);
+                ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(width,sy); ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "#2c3e50";
+            let axisX = mapX(0), axisY = mapY(0);
+            ctx.moveTo(0, axisY); ctx.lineTo(width, axisY);
+            ctx.moveTo(axisX, 0); ctx.lineTo(axisX, height);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "#4a90d9";
+            let first = true;
+            for(let px = xMin; px <= xMax; px += (xMax-xMin)/300) {
+                let py = f(px);
+                let sx = mapX(px), sy = mapY(py);
+                if(sy < 0 || sy > height) { first = true; continue; }
+                if(first) { ctx.moveTo(sx, sy); first = false; }
+                else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+
+            let x0 = currentX, y0 = f(x0);
+            let px = mapX(x0), py = mapY(y0);
+            ctx.beginPath();
+            ctx.fillStyle = "#e67e22";
+            ctx.arc(px, py, 6, 0, 2*Math.PI); ctx.fill();
+            ctx.fillStyle = "white";
+            ctx.beginPath(); ctx.arc(px, py, 2.5, 0, 2*Math.PI); ctx.fill();
+
+            const yp = f1(x0);
+            const ypp = f2(x0);
+
+            if(currentStep === 0) {
+                let xL = x0 - 1.4, xR = x0 + 1.4;
+                let yL = y0 + yp * (xL - x0);
+                let yR = y0 + yp * (xR - x0);
+                let p1 = {x: mapX(xL), y: mapY(yL)};
+                let p2 = {x: mapX(xR), y: mapY(yR)};
+                ctx.beginPath();
+                ctx.lineWidth = 2.2;
+                ctx.strokeStyle = "#e67e22";
+                ctx.setLineDash([8, 6]);
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = "#e67e22";
+                ctx.font = "500 13px 'Segoe UI'";
+                ctx.fillText("切线 (斜率 y')", px+10, py-12);
+            }
+            else if(currentStep === 1) {
+                const isConcaveUp = ypp > 0;
+                ctx.font = "bold 18px 'Segoe UI'";
+                ctx.fillStyle = isConcaveUp ? "#27ae60" : "#f39c12";
+                let label = isConcaveUp ? "∪ 凹函数" : "∩ 凸函数";
+                ctx.fillText(label, width-130, 45);
+                ctx.font = "12px monospace";
+                ctx.fillStyle = "#4a90d9";
+                ctx.fillText(`f''(x) = ${ypp.toFixed(4)}`, px+12, py-20);
+            }
+            else if(currentStep === 2) {
+                let R = radius(x0);
+                if(R < 80 && R > 0.05) {
+                    let center = circleCenter(x0, y0, yp, R);
+                    let cx = mapX(center.cx);
+                    let cy = mapY(center.cy);
+                    
+                    const sx = width / (xMax - xMin);
+                    const sy = height / (yMax - yMin);
+                    
+                    let radiusXPx = Math.abs(R * sx);
+                    let radiusYPx = Math.abs(R * sy);
+                    
+                    if(radiusXPx < 200 && radiusXPx > 3) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, radiusXPx, radiusYPx, 0, 0, 2*Math.PI);
+                        ctx.strokeStyle = "#e74c3c";
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([4, 6]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        ctx.fillStyle = "rgba(231,76,60,0.08)";
+                        ctx.fill();
+                        ctx.restore();
+                        
+                        ctx.fillStyle = "#c0392b";
+                        ctx.font = "italic 12px sans-serif";
+                        ctx.fillText("密切圆", cx-22, cy-8);
+                        ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 2*Math.PI); ctx.fillStyle = "#e74c3c"; ctx.fill();
+                        
+                        ctx.strokeStyle = "#95a5a6";
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([3, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy);
+                        ctx.lineTo(px, py);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    } else {
+                        ctx.fillStyle = "#e74c3c";
+                        ctx.fillText("曲率半径过大", width-120, 45);
+                    }
+                } else {
+                    ctx.fillStyle = "#e74c3c";
+                    ctx.fillText("曲率接近0，圆不可见", width-130, 45);
+                }
+                ctx.fillStyle = "#2c3e50";
+                ctx.font = "12px monospace";
+                ctx.fillText(`R = ${R.toFixed(2)}`, px+10, py-18);
+            }
+
+            ctx.font = "11px monospace";
+            ctx.fillStyle = "#7f8c8d";
+            ctx.fillText(`y' = ${yp.toFixed(4)}`, px+8, py-30);
+            ctx.restore();
+        };
+
+        const refreshAll = () => {
+            let x = currentX;
+            xValueSpan.innerHTML = `x = ${x.toFixed(3)}`;
+            curvSpan.innerHTML = `📐 k = ${curvature(x).toFixed(5)}`;
+            highlightStepFormula(currentStep);
+            drawCanvas();
+            updateStepUI();
+        };
+
+        const setStep = (step) => {
+            if(step < 0) step = 0;
+            if(step > 2) step = 2;
+            currentStep = step;
+            refreshAll();
+        };
+
+        const nextStep = () => setStep(currentStep + 1);
+        const prevStep = () => setStep(currentStep - 1);
+        const reset = () => {
+            setStep(0);
+            xSlider.value = "1.2";
+            currentX = 1.2;
+            refreshAll();
+        };
+
+        const onSliderChange = (e) => {
+            currentX = parseFloat(e.target.value);
+            refreshAll();
+        };
+
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        document.getElementById('prevBtn').addEventListener('click', prevStep);
+        document.getElementById('nextBtn').addEventListener('click', nextStep);
+        xSlider.addEventListener('input', onSliderChange);
+
+        currentStep = 0;
+        currentX = 1.2;
+        xSlider.value = "1.2";
+        refreshAll();
+    })();
+    </script>
+
+    <!-- 工程实验室模块JS -->
+    <script>
+    (function(){
+        const canvas = document.getElementById('engCanvas');
+        const ctx = canvas.getContext('2d');
+        const curvCanvas = document.getElementById('engCurvatureGraph');
+        const curvCtx = curvCanvas.getContext('2d');
+        const impactCanvas = document.getElementById('engImpactCanvas');
+        const impactCtx = impactCanvas.getContext('2d');
+        
+        let R = 200;
+        let L = 150;
+        let useClothoid = true;
+        
+        const updateRadius = (val) => {
+            R = parseInt(val);
+            document.getElementById('engRadiusVal').textContent = R;
+            renderAll();
+        };
+        const updateLength = (val) => {
+            L = parseInt(val);
+            document.getElementById('engTransLengthVal').textContent = L;
+            renderAll();
+        };
+        const toggleClothoid = (checked) => {
+            useClothoid = checked;
+            document.getElementById('engToggleStatus').textContent = checked ? '已启用' : '已禁用';
+            document.getElementById('engToggleStatus').className = `eng-toggle-status ${checked ? 'on' : 'off'}`;
+            renderAll();
+        };
+        
+        const clothoid = (s) => {
+            const A = Math.sqrt(R * L);
+            let t = s / A;
+            let x = A * Math.sin(t);
+            let y = A * (1 - Math.cos(t));
+            return { x, y, theta: t };
+        };
+        
+        const renderRoadView = () => {
+            const w = canvas.width, h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.save();
+            ctx.translate(w/2, h/2);
+            ctx.scale(1.8, 1.8);
+            
+            ctx.fillStyle = '#f5f5f5';
+            ctx.fillRect(-w/2, -h/2, w, h);
+            
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 0.5;
+            for(let i = -200; i <= 200; i += 50) {
+                ctx.beginPath(); ctx.moveTo(i, -150); ctx.lineTo(i, 150); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-200, i); ctx.lineTo(200, i); ctx.stroke();
+            }
+            
+            const straightLen = 80;
+            const arcLen = Math.PI * R / 4;
+            
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            
+            ctx.strokeStyle = '#666';
+            ctx.beginPath();
+            ctx.moveTo(-straightLen, 0);
+            ctx.lineTo(0, 0);
+            ctx.stroke();
+            
+            if(useClothoid) {
+                ctx.strokeStyle = '#4a90d9';
+                ctx.beginPath();
+                for(let s = 0; s <= L; s += 2) {
+                    let p = clothoid(s);
+                    if(s === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                }
+                ctx.stroke();
+                
+                const endP = clothoid(L);
+                ctx.strokeStyle = '#27ae60';
+                ctx.beginPath();
+                for(let theta = endP.theta; theta <= Math.PI/2; theta += 0.02) {
+                    let x = endP.x + R * Math.cos(Math.PI/2 - theta);
+                    let y = endP.y + R * Math.sin(Math.PI/2 - theta);
+                    if(theta === endP.theta) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = '#e74c3c';
+                ctx.setLineDash([8, 6]);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                for(let theta = 0; theta <= Math.PI/2; theta += 0.02) {
+                    let x = R * Math.sin(theta);
+                    let y = R * (1 - Math.cos(theta));
+                    if(theta === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            ctx.fillStyle = '#4a90d9';
+            ctx.beginPath();
+            ctx.arc(-20, 0, 8, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🚗', -20, 4);
+            
+            ctx.restore();
+        };
+        
+        const renderCurvatureGraph = () => {
+            const w = curvCanvas.width, h = curvCanvas.height;
+            curvCtx.clearRect(0, 0, w, h);
+            
+            curvCtx.strokeStyle = '#ddd';
+            curvCtx.lineWidth = 1;
+            for(let i = 0; i <= 4; i++) {
+                let y = (i/4)*h;
+                curvCtx.beginPath(); curvCtx.moveTo(0, y); curvCtx.lineTo(w, y); curvCtx.stroke();
+            }
+            
+            const totalLen = 100 + L + 80;
+            const k_max = 1/R;
+            
+            curvCtx.strokeStyle = '#27ae60';
+            curvCtx.lineWidth = 2.5;
+            curvCtx.beginPath();
+            for(let s = 0; s <= totalLen; s += 2) {
+                let k;
+                if(s <= 100) k = 0;
+                else if(s <= 100+L) k = (s-100)/(L*R);
+                else k = 1/R;
+                
+                let x = (s/totalLen)*w;
+                let y = h - (k/k_max)*0.8*h;
+                if(s === 0) curvCtx.moveTo(x, y);
+                else curvCtx.lineTo(x, y);
+            }
+            curvCtx.stroke();
+            
+            curvCtx.strokeStyle = '#e74c3c';
+            curvCtx.lineWidth = 2;
+            curvCtx.setLineDash([6, 4]);
+            curvCtx.beginPath();
+            for(let s = 0; s <= totalLen; s += 2) {
+                let k = s > 100 ? 1/R : 0;
+                let x = (s/totalLen)*w;
+                let y = h - (k/k_max)*0.8*h;
+                if(s === 0) curvCtx.moveTo(x, y);
+                else curvCtx.lineTo(x, y);
+            }
+            curvCtx.stroke();
+            curvCtx.setLineDash([]);
+            
+            curvCtx.fillStyle = '#666';
+            curvCtx.font = '11px sans-serif';
+            curvCtx.fillText('距离 (m)', w-60, h-8);
+            curvCtx.save();
+            curvCtx.translate(8, h/2);
+            curvCtx.rotate(-Math.PI/2);
+            curvCtx.fillText('曲率 κ', -h/2, 0);
+            curvCtx.restore();
+        };
+        
+        let impactAngle = 0;
+        const renderImpactDemo = () => {
+            const w = impactCanvas.width, h = impactCanvas.height;
+            impactCtx.clearRect(0, 0, w, h);
+            
+            impactCtx.fillStyle = '#f8fafc';
+            impactCtx.fillRect(0, 0, w, h);
+            
+            impactCtx.strokeStyle = '#ddd';
+            impactCtx.lineWidth = 1;
+            for(let i = 0; i <= 5; i++) {
+                let x = (i/5)*w;
+                impactCtx.beginPath(); impactCtx.moveTo(x, 0); impactCtx.lineTo(x, h); impactCtx.stroke();
+            }
+            for(let i = 0; i <= 4; i++) {
+                let y = (i/4)*h;
+                impactCtx.beginPath(); impactCtx.moveTo(0, y); impactCtx.lineTo(w, y); impactCtx.stroke();
+            }
+            
+            impactCtx.strokeStyle = '#666';
+            impactCtx.lineWidth = 3;
+            impactCtx.beginPath();
+            impactCtx.moveTo(20, h/2);
+            impactCtx.lineTo(w-80, h/2);
+            impactCtx.stroke();
+            
+            if(!useClothoid) {
+                impactCtx.strokeStyle = '#e74c3c';
+                impactCtx.setLineDash([6, 4]);
+                impactCtx.beginPath();
+                impactCtx.moveTo(w-80, h/2);
+                impactCtx.quadraticCurveTo(w-30, h/2-40, w-20, h/2-30);
+                impactCtx.stroke();
+                impactCtx.setLineDash([]);
+            } else {
+                impactCtx.strokeStyle = '#27ae60';
+                impactCtx.beginPath();
+                impactCtx.moveTo(w-80, h/2);
+                impactCtx.quadraticCurveTo(w-55, h/2-25, w-20, h/2-30);
+                impactCtx.stroke();
+            }
+            
+            const carX = 60;
+            const carY = h/2;
+            
+            impactAngle += useClothoid ? 0.002 : 0.008;
+            if(impactAngle > Math.PI/6) impactAngle = 0;
+            
+            impactCtx.save();
+            impactCtx.translate(carX, carY);
+            impactCtx.rotate(useClothoid ? impactAngle : Math.floor(impactAngle*10)/10 * Math.PI/6);
+            
+            impactCtx.fillStyle = '#3498db';
+            impactCtx.fillRect(-15, -8, 30, 16);
+            
+            if(!useClothoid && Math.abs(impactAngle - Math.PI/6) < 0.1) {
+                impactCtx.strokeStyle = '#e74c3c';
+                impactCtx.lineWidth = 3;
+                impactCtx.beginPath();
+                impactCtx.moveTo(0, 0);
+                impactCtx.lineTo(25, -20);
+                impactCtx.stroke();
+                impactCtx.fillStyle = '#e74c3c';
+                impactCtx.font = 'bold 12px sans-serif';
+                impactCtx.fillText('⚡', 28, -18);
+            }
+            
+            impactCtx.restore();
+        };
+        
+        const renderAll = () => {
+            renderRoadView();
+            renderCurvatureGraph();
+        };
+        
+        let impactAnim;
+        const startImpactAnim = () => {
+            impactAnim = setInterval(() => {
+                renderImpactDemo();
+            }, 30);
+        };
+        
+        document.getElementById('engRadius').addEventListener('input', (e) => updateRadius(e.target.value));
+        document.getElementById('engTransLength').addEventListener('input', (e) => updateLength(e.target.value));
+        document.getElementById('engUseClothoid').addEventListener('change', (e) => toggleClothoid(e.target.checked));
+        
+        renderAll();
+        startImpactAnim();
+        
+        window.addEventListener('resize', renderAll);
+    })();
+    </script>
+
+    <!-- 知识挑战模块JS -->
+    <script>
+    (function(){
+        let score = 0;
+        let answeredQuestions = {};
+        
+        const questions = [
+            {
+                id: 'choice1',
+                type: 'choice',
+                question: '1. 下列关于曲率的说法，正确的是？',
+                options: [
+                    { text: 'A. 直线的曲率为无穷大', isCorrect: false },
+                    { text: 'B. 圆的曲率处处相等', isCorrect: true },
+                    { text: 'C. 抛物线的曲率是常数', isCorrect: false },
+                    { text: 'D. 曲率越小曲线越弯曲', isCorrect: false }
+                ],
+                score: 10
+            },
+            {
+                id: 'choice2',
+                type: 'choice',
+                question: '2. 对于曲线 y = x²，在点 (0, 0) 处的曲率是？',
+                options: [
+                    { text: 'A. 0', isCorrect: false },
+                    { text: 'B. 1', isCorrect: false },
+                    { text: 'C. 2', isCorrect: true },
+                    { text: 'D. 4', isCorrect: false }
+                ],
+                score: 10
+            },
+            {
+                id: 'choice3',
+                type: 'choice',
+                question: '3. 密切圆（曲率圆）的特点是？',
+                options: [
+                    { text: 'A. 与曲线在某点相切', isCorrect: false },
+                    { text: 'B. 与曲线在某点有相同的曲率', isCorrect: false },
+                    { text: 'C. 半径是曲率的倒数', isCorrect: false },
+                    { text: 'D. 以上都正确', isCorrect: true }
+                ],
+                score: 10
+            }
+        ];
+        
+        const dragItems = [
+            { id: 'drag1', text: '直线', match: '曲率为0' },
+            { id: 'drag2', text: '圆', match: '曲率恒定' },
+            { id: 'drag3', text: '抛物线', match: '曲率变化' },
+            { id: 'drag4', text: '回旋线', match: '曲率线性变化' }
+        ];
+        
+        const judgeQuestions = [
+            { id: 'judge1', question: '1. 曲率是描述曲线弯曲程度的物理量', answer: true },
+            { id: 'judge2', question: '2. 二阶导数越大，曲线一定越弯曲', answer: false },
+            { id: 'judge3', question: '3. 回旋线常用于道路设计中的平滑过渡', answer: true }
+        ];
+        
+        const fillQuestions = [
+            { id: 'fill1', question: '曲率公式 k = |y″| / (1 + y′²)^(____)', answer: '3/2' },
+            { id: 'fill2', question: '密切圆的半径 R = ____ / k', answer: '1' },
+            { id: 'fill3', question: '回旋线的曲率随弧长____变化', answer: '线性' }
+        ];
+        
+        const renderChoiceQuestions = () => {
+            const container = document.getElementById('quizChoiceSection');
+            container.innerHTML = '<h3>📝 选择题</h3>';
+            
+            questions.forEach(q => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-item';
+                qDiv.innerHTML = `<div class="question">${q.question}</div><div class="options" id="opts-${q.id}"></div>`;
+                container.appendChild(qDiv);
+                
+                const optsContainer = document.getElementById(`opts-${q.id}`);
+                q.options.forEach((opt, idx) => {
+                    const optDiv = document.createElement('div');
+                    optDiv.className = 'option';
+                    optDiv.innerHTML = `
+                        <input type="radio" name="${q.id}" value="${idx}">
+                        <span>${opt.text}</span>
+                    `;
+                    optsContainer.appendChild(optDiv);
+                    
+                    optDiv.addEventListener('click', () => {
+                        checkChoice(q, idx);
+                    });
+                });
+            });
+        };
+        
+        const checkChoice = (q, idx) => {
+            if(answeredQuestions[q.id]) return;
+            
+            const isCorrect = q.options[idx].isCorrect;
+            const opts = document.querySelectorAll(`input[name="${q.id}"]`);
+            opts.forEach((opt, i) => {
+                const parent = opt.parentElement;
+                if(i === idx) {
+                    parent.classList.add(isCorrect ? 'correct' : 'incorrect');
+                }
+                opt.disabled = true;
+            });
+            
+            if(isCorrect) {
+                score += q.score;
+                updateScore();
+            }
+            answeredQuestions[q.id] = true;
+        };
+        
+        const renderDragQuestions = () => {
+            const container = document.getElementById('quizDragSection');
+            container.innerHTML = '<h3>🔀 拖拽匹配题</h3><p class="question">将左侧曲线类型与右侧特性匹配</p>';
+            
+            const dragArea = document.createElement('div');
+            dragArea.className = 'drag-area';
+            
+            const leftPanel = document.createElement('div');
+            leftPanel.className = 'drag-panel';
+            
+            const rightPanel = document.createElement('div');
+            rightPanel.className = 'drag-panel';
+            
+            const shuffledItems = [...dragItems];
+            const shuffledMatches = [...dragItems.map(i => i.match)].sort(() => Math.random() - 0.5);
+            
+            shuffledItems.forEach((item, idx) => {
+                const draggable = document.createElement('div');
+                draggable.className = 'drag-item';
+                draggable.draggable = true;
+                draggable.dataset.id = item.id;
+                draggable.textContent = item.text;
+                leftPanel.appendChild(draggable);
+                
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone';
+                dropZone.dataset.match = shuffledMatches[idx];
+                dropZone.textContent = shuffledMatches[idx];
+                rightPanel.appendChild(dropZone);
+            });
+            
+            dragArea.appendChild(leftPanel);
+            dragArea.appendChild(rightPanel);
+            container.appendChild(dragArea);
+            
+            const dragItemsEl = document.querySelectorAll('.drag-item');
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            dragItemsEl.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', e.target.dataset.id);
+                });
+            });
+            
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                
+                zone.addEventListener('dragleave', () => {
+                    zone.classList.remove('drag-over');
+                });
+                
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    const itemId = e.dataTransfer.getData('text/plain');
+                    const item = dragItems.find(i => i.id === itemId);
+                    
+                    if(item && zone.dataset.match === item.match) {
+                        zone.classList.add('matched');
+                        document.querySelector(`[data-id="${itemId}"]`).style.opacity = '0.5';
+                        score += 10;
+                        updateScore();
+                    }
+                });
+            });
+        };
+        
+        const renderJudgeQuestions = () => {
+            const container = document.getElementById('quizJudgeSection');
+            container.innerHTML = '<h3>✓✗ 判断题</h3>';
+            
+            judgeQuestions.forEach(q => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-item';
+                qDiv.innerHTML = `
+                    <div class="question">${q.question}</div>
+                    <div class="judge-options">
+                        <button class="judge-btn true" data-id="${q.id}" data-answer="true">✓ 正确</button>
+                        <button class="judge-btn false" data-id="${q.id}" data-answer="false">✗ 错误</button>
+                    </div>
+                `;
+                container.appendChild(qDiv);
+            });
+            
+            document.querySelectorAll('.judge-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.dataset.id;
+                    if(answeredQuestions[id]) return;
+                    
+                    const q = judgeQuestions.find(j => j.id === id);
+                    const userAnswer = e.target.dataset.answer === 'true';
+                    
+                    if(userAnswer === q.answer) {
+                        e.target.classList.add('correct');
+                        score += 10;
+                        updateScore();
+                    } else {
+                        e.target.classList.add('incorrect');
+                    }
+                    
+                    document.querySelectorAll(`[data-id="${id}"]`).forEach(b => b.disabled = true);
+                    answeredQuestions[id] = true;
+                });
+            });
+        };
+        
+        const renderFillQuestions = () => {
+            const container = document.getElementById('quizFillSection');
+            container.innerHTML = '<h3>✏️ 填空题</h3>';
+            
+            fillQuestions.forEach(q => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-item';
+                qDiv.innerHTML = `
+                    <div class="question">${q.question}</div>
+                    <input type="text" class="fill-input" data-id="${q.id}" placeholder="请输入答案">
+                    <button class="submit-fill" data-id="${q.id}">提交</button>
+                `;
+                container.appendChild(qDiv);
+            });
+            
+            document.querySelectorAll('.submit-fill').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.dataset.id;
+                    if(answeredQuestions[id]) return;
+                    
+                    const input = document.querySelector(`input[data-id="${id}"]`);
+                    const q = fillQuestions.find(f => f.id === id);
+                    
+                    if(input.value.trim().toLowerCase() === q.answer.toLowerCase()) {
+                        input.classList.add('correct');
+                        score += 10;
+                        updateScore();
+                    } else {
+                        input.classList.add('incorrect');
+                    }
+                    
+                    input.disabled = true;
+                    btn.disabled = true;
+                    answeredQuestions[id] = true;
+                });
+            });
+        };
+        
+        const updateScore = () => {
+            const displayScore = Math.min(score, 130);
+            document.getElementById('score').textContent = displayScore;
+            updateBadges();
+        };
+        
+        const updateBadges = () => {
+            const badges = ['badge1', 'badge2', 'badge3'];
+            badges.forEach((badge, idx) => {
+                const el = document.getElementById(badge);
+                if(score >= (idx + 1) * 30) {
+                    el.style.transform = 'scale(1.2)';
+                    el.style.opacity = '1';
+                }
+            });
+        };
+        
+        const showResult = () => {
+            const resultPanel = document.getElementById('resultPanel');
+            const finalScore = document.getElementById('finalScore');
+            const evaluation = document.getElementById('evaluation');
+            
+            finalScore.textContent = `${score} / 100`;
+            
+            let evalText = '';
+            if(score >= 90) evalText = '🏆 太棒了！你是曲率大师！';
+            else if(score >= 70) evalText = '👍 表现优秀！继续加油！';
+            else if(score >= 50) evalText = '💪 不错的开始，继续学习！';
+            else evalText = '📚 建议回顾课程内容后再试！';
+            
+            evaluation.innerHTML = evalText;
+            resultPanel.style.display = 'block';
+        };
+        
+        renderChoiceQuestions();
+        renderDragQuestions();
+        renderJudgeQuestions();
+        renderFillQuestions();
+        
+        document.getElementById('showResult').addEventListener('click', showResult);
+    })();
+    
+    // 等待 DOM 完全加载后再设置滚动动画和其他功能
+    document.addEventListener('DOMContentLoaded', () => {
+        // 滚动动画观察器
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        // 为所有 content-card 添加滚动动画
+        document.querySelectorAll('.content-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = `opacity 0.6s ease-out ${index * 0.05}s, transform 0.6s ease-out ${index * 0.05}s`;
+            observer.observe(card);
+        });
+        
+        // 回到顶部按钮功能
+        const backToTopBtn = document.getElementById('backToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+        
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // 深色模式切换功能
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const html = document.documentElement;
+        
+        // 检查本地存储中的主题设置
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            html.classList.add('dark-mode');
+            darkModeToggle.textContent = '☀️';
+            darkModeToggle.classList.add('light');
+        }
+        
+        darkModeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark-mode');
+            
+            if (html.classList.contains('dark-mode')) {
+                darkModeToggle.textContent = '☀️';
+                darkModeToggle.classList.add('light');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                darkModeToggle.textContent = '🌙';
+                darkModeToggle.classList.remove('light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    });
+    </script>
+</body>
+</html>
